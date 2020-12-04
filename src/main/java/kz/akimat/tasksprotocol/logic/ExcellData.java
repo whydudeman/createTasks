@@ -19,9 +19,10 @@ public class ExcellData {
     public List<String> userControllers;
     public List<String> departments;
     public Date deadline;
-    public String sphere;
     public String result;
+    public String sphere;
     public String status;
+    public String doneStatus;
     public String protocolType;
 
     public ExcellData(Row row) {
@@ -29,6 +30,8 @@ public class ExcellData {
         this.protocolDate = getDateFromRowByIndex(row.getCell(1));
         this.protocolNumber = getStringFromRowByIndex(row.getCell(2));
         this.protocolPoint = getStringFromRowByIndex(row.getCell(3));
+        if (protocolPoint == null || protocolPoint.isEmpty())
+            throw new RuntimeException("ERROR: protocolPoint is null or empty");
         this.taskText = getStringFromRowByIndex(row.getCell(4));
         String userControllersAsText = getStringFromRowByIndex(row.getCell(5));
         this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
@@ -36,20 +39,32 @@ public class ExcellData {
         this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
         this.deadline = getDateFromRowByIndex(row.getCell(7));
 
-        String sphereWithCommas = getStringFromRowByIndex(row.getCell(8));
-        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
-        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
+        this.result = getStringFromRowByIndex(row.getCell(8));
 
-        this.result = getStringFromRowByIndex(row.getCell(9));
+//        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
+//        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
+//        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
+        this.sphere = null;
+        String statusText = getStringFromRowByIndex(row.getCell(9)).trim();
 
-        String statusText = getStringFromRowByIndex(row.getCell(10)).trim();
-
-        if (statusText.equalsIgnoreCase("В работе") || statusText.equalsIgnoreCase("в работе"))
+        if (statusText.equalsIgnoreCase("В работе"))
             this.status = "IN_PROGRESS";
-        else if (statusText.equalsIgnoreCase("Исполнено") || statusText.equalsIgnoreCase("исполнено"))
+        else if (statusText.equalsIgnoreCase("Исполнено"))
             this.status = "DONE";
+        else if (statusText.equalsIgnoreCase("Не исполнено"))
+            this.status = "NOT_DONE";
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
+        if (status.equalsIgnoreCase("DONE")) {
+            String doneStatusText = getStringFromRowByIndex(row.getCell(10));
+            if (doneStatusText.equalsIgnoreCase("Полное исполнение"))
+                this.doneStatus = "FULL";
+            else if (doneStatusText.equalsIgnoreCase("РКЗ")) {
+                this.doneStatus = "VICE_CONTROL";
+            } else if (doneStatusText.equalsIgnoreCase("Дублирование")) {
+                this.doneStatus = "DUPLICATE";
+            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
+        }
         this.protocolType = getStringFromRowByIndex(row.getCell(11));
     }
 
@@ -58,10 +73,10 @@ public class ExcellData {
             if (cell.getCellType().equals(CellType.STRING))
                 return cell.getStringCellValue().trim();
             if (cell.getCellType().equals(CellType.NUMERIC))
-                return String.valueOf((int) cell.getNumericCellValue());
+                return String.valueOf((int) cell.getNumericCellValue()).trim();
             throw new RuntimeException("CANNOT GET CELL VALUE");
         } else
-            throw new RuntimeException("EMPTY CELL");
+            return null;
     }
 
     public static Date getDateFromRowByIndex(Cell cell) {
@@ -72,6 +87,7 @@ public class ExcellData {
             if (cell.getCellType().equals(CellType.NUMERIC))
                 return getEndOfDate(cell.getDateCellValue());
         }
+        System.out.println("cannot get date");
         return null;
     }
 

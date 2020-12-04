@@ -56,8 +56,10 @@ public class UserUtils {
         List<Long> ids = new ArrayList<>();
         for (String name : names) {
             for (User user : users) {
-                if ((levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4) && (user.getRoles().contains("VICE AKIM")))
+                if (((user.getNameNoChange().equalsIgnoreCase(name.trim())) || (levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4)) && (user.getRoles().contains("VICE AKIM"))) {
                     ids.add(user.getId());
+                    break;
+                }
             }
 
         }
@@ -66,7 +68,7 @@ public class UserUtils {
             for (String name : names) {
                 System.out.println("Excell UserName: " + name);
                 for (User user : users) {
-                    if ((levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4) && (user.getRoles().contains("VICE AKIM")))
+                    if (((user.getNameNoChange().equalsIgnoreCase(name.trim())) || (levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)) && (user.getRoles().contains("VICE AKIM")))
                         System.out.println("User Name: " + user.getName() + " User Id: " + user.getId() + "User Name: " + user.getNameNoChange() + " ROLE: " + user.getRoles().toString());
                 }
 
@@ -84,8 +86,8 @@ public class UserUtils {
                     System.out.println(rowNum + " Many users for one department " + s);
                 }
 
-                if ((user.getDepartment() != null && (user.getDepartment().trim().equalsIgnoreCase(s.trim()) ||
-                        levenstain(user.getDepartment().trim(), s.trim()) < 2)) && (user.getRoles().contains("EXECUTOR"))) {
+                if ((user.getDepartment() != null && ((user.getDepartment().trim().equalsIgnoreCase(s.trim()) ||
+                        levenstain(user.getDepartment().trim().toLowerCase(), s.trim().toLowerCase()) < 2)) && (user.getRoles().contains("EXECUTOR")))) {
                     count++;
                     ids.add(user.getId());
 //                    System.out.println(user.getNameNoChange() + " Department:" + s);
