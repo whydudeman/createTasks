@@ -22,7 +22,7 @@ public class ExcellData {
     public String result;
     public String sphere;
     public String status;
-    public String doneStatus;
+//    public String doneStatus;
     public String protocolType;
 
     public ExcellData(Row row) {
@@ -37,7 +37,7 @@ public class ExcellData {
         this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
         String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
         this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
-        this.deadline = getDateFromRowByIndex(row.getCell(7));
+        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(7)));
 
         this.result = getStringFromRowByIndex(row.getCell(8));
 
@@ -55,17 +55,17 @@ public class ExcellData {
             this.status = "NOT_DONE";
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
-        if (status.equalsIgnoreCase("DONE")) {
-            String doneStatusText = getStringFromRowByIndex(row.getCell(10));
-            if (doneStatusText.equalsIgnoreCase("Полное исполнение"))
-                this.doneStatus = "FULL";
-            else if (doneStatusText.equalsIgnoreCase("РКЗ")) {
-                this.doneStatus = "VICE_CONTROL";
-            } else if (doneStatusText.equalsIgnoreCase("Дублирование")) {
-                this.doneStatus = "DUPLICATE";
-            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
-        }
-        this.protocolType = getStringFromRowByIndex(row.getCell(11));
+//        if (status.equalsIgnoreCase("DONE")) {
+//            String doneStatusText = getStringFromRowByIndex(row.getCell(10));
+//            if (doneStatusText.equalsIgnoreCase("Полное исполнение"))
+//                this.doneStatus = "FULL";
+//            else if (doneStatusText.equalsIgnoreCase("РКЗ")) {
+//                this.doneStatus = "VICE_CONTROL";
+//            } else if (doneStatusText.equalsIgnoreCase("Дублирование")) {
+//                this.doneStatus = "DUPLICATE";
+//            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
+//        }
+        this.protocolType = getStringFromRowByIndex(row.getCell(10));
     }
 
     public static String getStringFromRowByIndex(Cell cell) {
@@ -83,9 +83,9 @@ public class ExcellData {
         if (cell != null) {
             if (cell.getCellType().equals(CellType.STRING))
                 if (!cell.getStringCellValue().isEmpty() || getDateFromString(cell.getStringCellValue()) != null)
-                    return getEndOfDate(getDateFromString(cell.getStringCellValue()));
+                    return getDateFromString(cell.getStringCellValue());
             if (cell.getCellType().equals(CellType.NUMERIC))
-                return getEndOfDate(cell.getDateCellValue());
+                return cell.getDateCellValue();
         }
         System.out.println("cannot get date");
         return null;

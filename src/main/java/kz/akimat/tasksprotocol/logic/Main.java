@@ -19,8 +19,8 @@ import java.util.Objects;
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
         Main objExcelFile = new Main();
-        String fileName = "pavlodar_akimat.xlsx";
-        String path = "/home/nurbol/akimat/";
+        String fileName = "mcriap_tasks_2.xlsx";
+        String path = "/home/nurbol/akimat/mcriap/";
         Workbook workbook = getExcelDocument(fileName, path);
         objExcelFile.processExcelObject(workbook);
     }
@@ -40,6 +40,28 @@ public class Main {
         return workbook;
     }
 
+    private static void createTaskHistoryInDB(Long taskId, java.util.Date protocolDate) {
+        String SQL_INSERT = "INSERT INTO task_history (created_at, updated_at, date, deadline,status, author_id,task_id,type) \n" +
+                "SELECT NOW(),NOW(),?,deadline,status,author_id,id,? FROM task where id=?";
+
+        Date deadline = null;
+        if (protocolDate != null) {
+            deadline = new java.sql.Date(protocolDate.getTime());
+        } else throw new RuntimeException("ProtocolDate ERROR ");
+        try (
+                Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
+                PreparedStatement statement = connection.prepareStatement(SQL_INSERT);
+        ) {
+            statement.setDate(1, deadline);
+            statement.setString(2, "TASK_CREATED");
+            statement.setLong(3, taskId);
+            statement.executeUpdate();
+            // ...
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void processExcelObject(Workbook workbook) throws SQLException {
         for (int i = 0; i < Objects.requireNonNull(workbook).getNumberOfSheets(); i++) {
             Sheet sheet = workbook.getSheetAt(i);
@@ -53,7 +75,6 @@ public class Main {
         }
     }
 
-
     private void insertAndUpdateTask(Row row) {
         List<User> users = UserUtils.getUsers();
         ExcellData excellData = new ExcellData(row);
@@ -61,55 +82,58 @@ public class Main {
         if (excellData.protocolNumber != null && !excellData.protocolNumber.trim().isEmpty()
                 && excellData.protocolPoint != null && !excellData.protocolPoint.isEmpty()
                 && excellData.protocolDate != null) {
-            Long protocolTypeId = getProtocolTypeIfExists(excellData.protocolType);
-            if (protocolTypeId == null) {
-                protocolTypeId = insertProtocolType(excellData.protocolType);
-            }
 
-            Long protocolId = getProtocolIfExists(excellData.protocolNumber);
-            if (protocolId == null) {
-                protocolId = insertProtocol(excellData.protocolName, excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
-            }
-
-            Long sphereId = null;
-            if (excellData.sphere != null) {
-                sphereId = getSphere(excellData.sphere);
-                if (sphereId == null) {
-                    System.out.println("WARNING: Sphere not found");
-                    throw new RuntimeException("SPHERE_NOT_FOUND");
-                }
-            }
-
-            Long taskId = createTask(protocolId, excellData.protocolPoint,
-                    excellData.taskText, excellData.deadline,
-                    sphereId, excellData.result,
-                    excellData.status, excellData.doneStatus, excellData.protocolDate);
-            if (taskId == null) {
-                System.out.println("ERROR: Task with name " + excellData.taskText);
-                throw new RuntimeException("TASK_NOT_CREATED");
-            }
-
-
-            createTaskHistoryInDB(taskId, excellData.protocolDate);
             List<Long> userId = UserUtils.getUsersId(excellData.userControllers, users);
             List<Long> executorIds = UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum());
+            if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty())
+                System.out.println("SKIPPING_TASK");
+            else {
+                Long protocolTypeId = getProtocolTypeIfExists(excellData.protocolType);
+                if (protocolTypeId == null) {
+                    protocolTypeId = insertProtocolType(excellData.protocolType);
+                }
 
-            createTaskUserInDb(taskId, executorIds);
-            int counter = 1;
-            boolean isMain = true;
-            for (Long userLongId : userId) {
+                Long protocolId = getProtocolIfExists(excellData.protocolNumber);
+                if (protocolId == null) {
+                    protocolId = insertProtocol(excellData.protocolName, excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
+                }
 
-                if (counter != 1)
-                    isMain = false;
-                if (getTaskUser(taskId, userLongId, "CONTROL") == null)
-                    createTaskUserInDb(taskId, userLongId, isMain);
-                counter++;
+                Long sphereId = null;
+                if (excellData.sphere != null) {
+                    sphereId = getSphere(excellData.sphere);
+                    if (sphereId == null) {
+                        System.out.println("WARNING: Sphere not found");
+                        throw new RuntimeException("SPHERE_NOT_FOUND");
+                    }
+                }
+                Long taskId = createTask(protocolId, excellData.protocolPoint,
+                        excellData.taskText, excellData.deadline,
+                        sphereId, excellData.result,
+                        excellData.status, excellData.protocolDate);
+                if (taskId == null) {
+                    System.out.println("ERROR: Task with name " + excellData.taskText);
+                    throw new RuntimeException("TASK_NOT_CREATED");
+                }
+
+
+                createTaskHistoryInDB(taskId, excellData.protocolDate);
+
+
+                createTaskUserInDb(taskId, executorIds);
+                int counter = 1;
+                boolean isMain = true;
+                for (Long userLongId : userId) {
+
+                    if (counter != 1)
+                        isMain = false;
+                    if (getTaskUser(taskId, userLongId, "CONTROL") == null)
+                        createTaskUserInDb(taskId, userLongId, isMain);
+                    counter++;
+                }
+
             }
-
         }
-
     }
-
 
     private Long getSphere(String sphere) {
         String SQL_SELECT = "SELECT id from sphere where name like ?";
@@ -221,11 +245,11 @@ public class Main {
     }
 
     private Long createTask(Long protocolId, String protocolPoint, String taskText, java.util.Date deadlineDate,
-                            Long sphereId, String result, String status, String doneStatus,
+                            Long sphereId, String result, String status,
                             java.util.Date protocolDate) {
         String SQL_INSERT = "INSERT INTO `task`(`created_at`, `updated_at`,`deadline`,`protocol_point`, `result`, " +
-                "`status`,`done_status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`) " +
-                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?)";
+                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`) " +
+                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?)";
         Date deadline = null;
         if (deadlineDate != null) {
             deadline = new java.sql.Date(deadlineDate.getTime());
@@ -243,17 +267,16 @@ public class Main {
             statement.setString(2, protocolPoint);
             statement.setString(3, result);
             statement.setString(4, status);
-            statement.setString(5, doneStatus);
-            statement.setString(6, taskText);
-            statement.setLong(7, protocolId);
+            statement.setString(5, taskText);
+            statement.setLong(6, protocolId);
             if (sphereId == null)
-                statement.setNull(8, java.sql.Types.NULL);
+                statement.setNull(7, java.sql.Types.NULL);
             else
-                statement.setLong(8, sphereId);
-            statement.setDate(9, deadline);
+                statement.setLong(7, sphereId);
+            statement.setDate(8, deadline);
             if (status.equalsIgnoreCase("DONE")) {
-                statement.setDate(10, inspectorResultDate);
-            } else statement.setNull(10, Types.NULL);
+                statement.setDate(9, inspectorResultDate);
+            } else statement.setNull(9, Types.NULL);
 
 
             int affectedRows = statement.executeUpdate();
@@ -274,7 +297,6 @@ public class Main {
         }
         return null;
     }
-
 
     private void createTaskUserInDb(Long taskId, Long userId, boolean isMain) {
         String SQL_INSERT = "INSERT INTO `task_user`( `created_at`, `updated_at`, `is_main`, " +
@@ -320,28 +342,6 @@ public class Main {
             count++;
         }
 
-    }
-
-    private static void createTaskHistoryInDB(Long taskId, java.util.Date protocolDate) {
-        String SQL_INSERT = "INSERT INTO task_history (created_at, updated_at, date, deadline,status,done_status, author_id,task_id,type) \n" +
-                "SELECT NOW(),NOW(),?,deadline,status,done_status,author_id,id,? FROM task where id=?";
-
-        Date deadline = null;
-        if (protocolDate != null) {
-            deadline = new java.sql.Date(protocolDate.getTime());
-        } else throw new RuntimeException("ProtocolDate ERROR ");
-        try (
-                Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
-                PreparedStatement statement = connection.prepareStatement(SQL_INSERT);
-        ) {
-            statement.setDate(1, deadline);
-            statement.setString(2, "TASK_CREATED");
-            statement.setLong(3, taskId);
-            statement.executeUpdate();
-            // ...
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     private Long getTaskUser(Long taskId, Long userId, String type) {
