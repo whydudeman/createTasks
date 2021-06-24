@@ -14,12 +14,13 @@ public class UserUtils {
             Connection con = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
 
             Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery("select u.id, u.name, d.name , GROUP_CONCAT(role.name), p.name from user u\n" +
+            ResultSet rs = stmt.executeQuery("select u.id, u.name, d.name, GROUP_CONCAT(role.name), p.name,d.abbreviation  from user u\n" +
                     "                    inner join position p ON p.id = u.position_id\n" +
                     "                    left join department d ON d.id = p.department_id\n" +
                     "                    left join role_user r on u.id=r.user_id\n" +
                     "                    LEFT JOIN role role on role.id=r.role_id\n" +
-                    "                    GROUP BY u.id");
+                    "                    WHERE active=true  \n" +
+                    "                    GROUP BY u.id order by u.id");
             List<User> users = new ArrayList();
             while (rs.next()) {
                 User user = new User();
@@ -30,6 +31,7 @@ public class UserUtils {
                 user.setNameNoChange(rs.getString(2));
                 user.setRoles(rs.getString(4));
                 user.setPosition(rs.getString(5));
+                user.setAbbreviation(rs.getString(6));
                 users.add(user);
             }
             con.close();
@@ -56,8 +58,7 @@ public class UserUtils {
         List<Long> ids = new ArrayList<>();
         for (String name : names) {
             for (User user : users) {
-//                System.out.println(name+" ||  "+user.getNameNoChange());
-                if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim())) || (levenstain(user.getNameNoChange(), name.trim()) < 1 || levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4)) && (user.getRoles().contains("VICE AKIM"))) {
+                if (isUserEquals(name, user) &&(user.getRoles().contains("VICE AKIM"))){
                     ids.add(user.getId());
                     break;
                 }
@@ -69,7 +70,7 @@ public class UserUtils {
             for (String name : names) {
                 System.out.println("Excell UserName: " + name);
                 for (User user : users) {
-                    if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim()) || levenstain(user.getNameNoChange(), name) < 2 || levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)) && (user.getRoles().contains("VICE AKIM")))
+                    if (isUserEquals(name, user) && (user.getRoles().contains("VICE AKIM")))
                         System.out.println("User Name: " + user.getName() + " User Id: " + user.getId() + "User Name: " + user.getNameNoChange() + " ROLE: " + user.getRoles().toString());
                 }
 
@@ -82,22 +83,21 @@ public class UserUtils {
         List<Long> ids = new ArrayList<>();
         for (String s : departments) {
             int count = 0;
+            if (s == null || s.isEmpty())
+                continue;
+            s = s.trim();
             for (User user : users) {
-                if (count > 1) {
-                    System.out.println(rowNum + " Many users for one department " + s);
-                }
-
-//                System.out.println(s+"   ||   "+user.getNameNoChange());
-                if ((((user.getNameNoChange().equalsIgnoreCase(s.trim())) || (levenstain(user.getNameNoChange(), s.trim()) < 2 || levenstain(user.getNameWithSpace(), s.trim()) < 4)) || (user.getDepartment() != null && ((user.getDepartment().trim().equalsIgnoreCase(s.trim()) ||
-                        levenstain(user.getDepartment().trim().toLowerCase(), s.trim().toLowerCase()) < 2)))) && (user.getRoles().contains("EXECUTOR"))) {
+                if ((isDepartmentEquals(s, user) || isUserEquals(s, user))
+                        && (user.getRoles().stream().anyMatch(r -> r.contains("EXECUTOR")))) {
                     count++;
                     ids.add(user.getId());
-//                    System.out.println(user.getNameNoChange() + " Department:" + s);
                 }
-
+            }
+            if (count > 1) {
+                System.out.println(rowNum + " Many users for one department " + s);
             }
             if (count == 0)
-                System.out.println(rowNum + " " + s);
+                System.out.println("deparment: " + rowNum + " |" + s + "|");
 
         }
         return ids;
@@ -123,5 +123,21 @@ public class UserUtils {
                         distance[i - 1][j - 1] + ((lhs.charAt(i - 1) == rhs.charAt(j - 1)) ? 0 : 1));
 
         return distance[lhs.length()][rhs.length()];
+    }
+
+    private static boolean isDepartmentEquals(String d1, User user) {
+        String userDepartment = user.getDepartment();
+        String userAbbreviation = user.getAbbreviation();
+        return (userDepartment != null && ((userDepartment.trim().equals(d1.trim()) ||
+                levenstain(userDepartment, d1.trim()) < 3))) ||
+                (userAbbreviation != null && ((userAbbreviation.trim().equals(d1.trim()) ||
+                        levenstain(userAbbreviation, d1.trim()) < 1)));
+    }
+
+    private static boolean isUserEquals(String name, User user) {
+        return (levenstain(user.getNameNoChange(), name.trim()) < 2) ||
+                (levenstain(user.getName(), name.trim()) < 2) ||
+                (levenstain(user.getNameWithSpace(), name.trim()) < 2);
+
     }
 }

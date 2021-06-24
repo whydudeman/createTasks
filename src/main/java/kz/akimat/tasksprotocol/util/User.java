@@ -9,8 +9,10 @@ public class User {
     private String name;
     private String nameWithSpace;
     private String department;
+    private String abbreviation;
     private String nameNoChange;
     private String position;
+    private boolean active;
     private List<String> roles;
 
     public Long getId() {
@@ -36,9 +38,9 @@ public class User {
     public void setName(String name) {
         String fio[] = name.split(" ");
         if (fio.length > 2) {
-            this.name = fio[0] + " " + fio[1].substring(0, 1) + "" + fio[2].substring(0, 1);
+            this.name = fio[0] + " " + fio[1].substring(0, 1) + "." + fio[2].substring(0, 1)+".";
         } else if (fio.length > 1) {
-            this.name = fio[0] + " " + fio[1].substring(0, 1) + "";
+            this.name = fio[0] + " " + fio[1].substring(0, 1) + ".";
         } else {
             this.name = name;
         }
@@ -81,5 +83,25 @@ public class User {
 
     public void setPosition(String position) {
         this.position = position;
+    }
+
+    public String getAbbreviation() {
+        return abbreviation;
+    }
+
+    public void setAbbreviation(String abbreviation) {
+        this.abbreviation = abbreviation;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

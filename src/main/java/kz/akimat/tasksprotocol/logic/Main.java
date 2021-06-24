@@ -12,15 +12,15 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.Date;
 import java.sql.*;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
         Main objExcelFile = new Main();
-        String fileName = "mcriap_tasks_2.xlsx";
-        String path = "/home/nurbol/akimat/mcriap/";
+        String fileName = "first_tasks.xlsx";
+        String path = "/home/nurbol/akimat/karaganda/";
         Workbook workbook = getExcelDocument(fileName, path);
         objExcelFile.processExcelObject(workbook);
     }
@@ -69,8 +69,8 @@ public class Main {
 //            int rowCount = sheet.getLastRowNum() - sheet.getFirstRowNum();
             for (int j = 1; j <= 1600; j++) {
                 Row row = sheet.getRow(j);
+                System.out.println(j);
                 insertAndUpdateTask(row);
-                System.out.println(j + 1);
             }
         }
     }
@@ -78,76 +78,101 @@ public class Main {
     private void insertAndUpdateTask(Row row) {
         List<User> users = UserUtils.getUsers();
         ExcellData excellData = new ExcellData(row);
-//        System.out.println(excellData.toString());
+        System.out.println(excellData.toString());
         if (excellData.protocolNumber != null && !excellData.protocolNumber.trim().isEmpty()
                 && excellData.protocolPoint != null && !excellData.protocolPoint.isEmpty()
-                && excellData.protocolDate != null) {
-
+                && excellData.protocolDate != null && excellData.deadline != null) {
             List<Long> userId = UserUtils.getUsersId(excellData.userControllers, users);
-            List<Long> executorIds = UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum());
-            if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty())
-                System.out.println("SKIPPING_TASK");
-            else {
-                Long protocolTypeId = getProtocolTypeIfExists(excellData.protocolType);
-                if (protocolTypeId == null) {
-                    protocolTypeId = insertProtocolType(excellData.protocolType);
-                }
+            List<Long> executionGroupUsers = new ArrayList<>();
+            boolean isExecutionGroupFirst = false;
+            String firstDepartment = excellData.departments.get(0);
+            Long executionGroupId = getExecutionGroup(firstDepartment.trim());
+            if (executionGroupId != null && executionGroupId != 0) {
+                executionGroupUsers = getExecutionGroupUsersByExecutionGroupId(executionGroupId);
+                isExecutionGroupFirst = true;
+            }
 
-                Long protocolId = getProtocolIfExists(excellData.protocolNumber);
-                if (protocolId == null) {
-                    protocolId = insertProtocol(excellData.protocolName, excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
+            if (isExecutionGroupFirst) {
+                excellData.departments.remove(firstDepartment);
+                for (Long firstUserId : executionGroupUsers) {
+                    List<Long> executorIds = new ArrayList<>();
+                    executorIds.add(firstUserId);
+                    executorIds.addAll(UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum()));
+                    Set<Long> departmentIds = new LinkedHashSet<>(executorIds);
+                    executorIds.addAll(departmentIds);
+                    executorIds = new ArrayList<>(departmentIds);
+                    createTaskRelatedObjects(excellData, userId, executorIds);
                 }
-
-                Long sphereId = null;
-                if (excellData.sphere != null) {
-                    sphereId = getSphere(excellData.sphere);
-                    if (sphereId == null) {
-                        System.out.println("WARNING: Sphere not found");
-                        throw new RuntimeException("SPHERE_NOT_FOUND");
+            } else {
+                List<String> executionGroups = new ArrayList<>();
+                for (String department : excellData.departments) {
+                    Long possiblyExecutionGroup = getExecutionGroup(department.trim());
+                    if (possiblyExecutionGroup != null && possiblyExecutionGroup != 0) {
+                        executionGroups.add(department);
                     }
                 }
-                Long taskId = createTask(protocolId, excellData.protocolPoint,
-                        excellData.taskText, excellData.deadline,
-                        sphereId, excellData.result,
-                        excellData.status, excellData.protocolDate);
-                if (taskId == null) {
-                    System.out.println("ERROR: Task with name " + excellData.taskText);
-                    throw new RuntimeException("TASK_NOT_CREATED");
+                excellData.departments.removeAll(executionGroups);
+
+                List<Long> executionGroupIds = new ArrayList<>();
+                for (String executionGroupName : executionGroups) {
+                    Long executionGroupIdTemp = getExecutionGroup(executionGroupName.trim());
+                    executionGroupIds.addAll(Objects.requireNonNull(getExecutionGroupUsersByExecutionGroupId(executionGroupIdTemp)));
                 }
-
-
-                createTaskHistoryInDB(taskId, excellData.protocolDate);
-
-
-                createTaskUserInDb(taskId, executorIds);
-                int counter = 1;
-                boolean isMain = true;
-                for (Long userLongId : userId) {
-
-                    if (counter != 1)
-                        isMain = false;
-                    if (getTaskUser(taskId, userLongId, "CONTROL") == null)
-                        createTaskUserInDb(taskId, userLongId, isMain);
-                    counter++;
-                }
-
+                List<Long> executorIds = new ArrayList<>();
+                executorIds = UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum());
+                executorIds.addAll(executionGroupIds);
+                executorIds = new ArrayList<>(new LinkedHashSet<>(executorIds));
+                createTaskRelatedObjects(excellData, userId, executorIds);
             }
+
         }
     }
 
-    private Long getSphere(String sphere) {
-        String SQL_SELECT = "SELECT id from sphere where name like ?";
-        try (Connection conn = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
-             PreparedStatement preparedStatement = conn.prepareStatement(SQL_SELECT)) {
-            preparedStatement.setString(1, "%" + sphere + "%");
-            ResultSet rs = preparedStatement.executeQuery();
-            while (rs.next()) {
-                return rs.getLong(1);
+    private void createTaskRelatedObjects(ExcellData excellData, List<Long> userId, List<Long> executorIds) {
+        if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty())
+            System.out.println("SKIPPING_TASK");
+        else {
+            Long protocolTypeId = getProtocolTypeIfExists(excellData.protocolType);
+            if (protocolTypeId == null) {
+                protocolTypeId = insertProtocolType(excellData.protocolType);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+            Long protocolId = getProtocolIfExists(excellData.protocolNumber);
+            if (protocolId == null) {
+                protocolId = insertProtocol(excellData.protocolName, excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
+            }
+
+            Long taskId = createTask(
+                    excellData.deadline,
+                    excellData.protocolPoint,
+                    excellData.result,
+                    excellData.status,
+                    excellData.taskText,
+                    protocolId,
+                    excellData.protocolDate,
+                    excellData.taskDeadlineRepeat);
+            if (taskId == null) {
+                System.out.println("ERROR: Task with name " + excellData.taskText);
+                throw new RuntimeException("TASK_NOT_CREATED");
+            }
+
+
+            createTaskHistoryInDB(taskId, excellData.protocolDate);
+
+
+            createTaskUserInDb(taskId, executorIds);
+            int counter = 1;
+            boolean isMain = true;
+            for (Long userLongId : userId) {
+
+                if (counter != 1)
+                    isMain = false;
+                if (getTaskUser(taskId, userLongId, "CONTROL") == null)
+                    createTaskUserInDb(taskId, userLongId, isMain);
+                counter++;
+            }
+
         }
-        return null;
     }
 
     private Long getProtocolTypeIfExists(String protocolType) {
@@ -244,11 +269,19 @@ public class Main {
 
     }
 
-    private Long createTask(Long protocolId, String protocolPoint, String taskText, java.util.Date deadlineDate,
-                            Long sphereId, String result, String status,
-                            java.util.Date protocolDate) {
+    private Long createTask(
+            java.util.Date deadlineDate,
+            String protocolPoint,
+            String result,
+            String status,
+            String taskText,
+            Long protocolId,
+            java.util.Date protocolDate,
+            String taskDeadlineRepeat) {
+
         String SQL_INSERT = "INSERT INTO `task`(`created_at`, `updated_at`,`deadline`,`protocol_point`, `result`, " +
-                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`) " +
+                "`status`, `task_text`, `protocol_id`, `initial_deadline`,`inspector_result_date`," +
+                "task_deadline_repeat) " +
                 "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?)";
         Date deadline = null;
         if (deadlineDate != null) {
@@ -269,16 +302,9 @@ public class Main {
             statement.setString(4, status);
             statement.setString(5, taskText);
             statement.setLong(6, protocolId);
-            if (sphereId == null)
-                statement.setNull(7, java.sql.Types.NULL);
-            else
-                statement.setLong(7, sphereId);
-            statement.setDate(8, deadline);
-            if (status.equalsIgnoreCase("DONE")) {
-                statement.setDate(9, inspectorResultDate);
-            } else statement.setNull(9, Types.NULL);
-
-
+            statement.setDate(7, deadline);
+            statement.setDate(8, inspectorResultDate);
+            statement.setNull(9, Types.NULL);
             int affectedRows = statement.executeUpdate();
 
             if (affectedRows == 0) {
@@ -355,6 +381,38 @@ public class Main {
             while (rs.next()) {
                 return rs.getLong(1);
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private Long getExecutionGroup(String name) {
+        String SQL_SELECT = "SELECT eg.id from execution_group eg where eg.name like ?";
+        try (Connection conn = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
+             PreparedStatement preparedStatement = conn.prepareStatement(SQL_SELECT)) {
+            preparedStatement.setString(1, "%" + name + "%");
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private List<Long> getExecutionGroupUsersByExecutionGroupId(Long executionGroupId) {
+        String SQL_SELECT = "SELECT egu.users_id from execution_group_users egu where egu.execution_group_id = ?";
+        try (Connection conn = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
+             PreparedStatement preparedStatement = conn.prepareStatement(SQL_SELECT)) {
+            preparedStatement.setLong(1, executionGroupId);
+            ResultSet rs = preparedStatement.executeQuery();
+            List<Long> userIds = new ArrayList<>();
+            while (rs.next()) {
+                userIds.add(rs.getLong("users_id"));
+            }
+            return userIds;
         } catch (SQLException e) {
             e.printStackTrace();
         }

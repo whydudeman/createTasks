@@ -11,42 +11,42 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ExcellData {
-    public String protocolName;
-    public Date protocolDate;
-    public String protocolNumber;
-    public String protocolPoint;
-    public String taskText;
-    public List<String> userControllers;
-    public List<String> departments;
-    public Date deadline;
-    public String result;
-    public String sphere;
-    public String status;
-//    public String doneStatus;
-    public String protocolType;
+    public Integer id;
+    public String protocolName;//0
+    public Date protocolDate;//1
+    public String protocolNumber;//2
+    public String protocolPoint;//3
+    public String taskText;//4
+    public List<String> userControllers;//5
+    public List<String> departments;//6
+    public Date deadline;//7
+    public String result;//8
+    public String status;//9
+    public String protocolType;//10
+
+
+    public String taskDeadlineRepeat;//8
+    public String sphere;//11
 
     public ExcellData(Row row) {
         this.protocolName = getStringFromRowByIndex(row.getCell(0));
         this.protocolDate = getDateFromRowByIndex(row.getCell(1));
         this.protocolNumber = getStringFromRowByIndex(row.getCell(2));
         this.protocolPoint = getStringFromRowByIndex(row.getCell(3));
-        if (protocolPoint == null || protocolPoint.isEmpty())
-            throw new RuntimeException("ERROR: protocolPoint is null or empty");
+
         this.taskText = getStringFromRowByIndex(row.getCell(4));
         String userControllersAsText = getStringFromRowByIndex(row.getCell(5));
-        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
-        String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
-        this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
-        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(7)));
+        this.userControllers = getArrayFromText(userControllersAsText);
 
+        String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
+        this.departments = getArrayFromText(departmentsAsText);
+        this.deadline = getDateFromRowByIndex(row.getCell(7));
         this.result = getStringFromRowByIndex(row.getCell(8));
 
-//        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
-//        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
-//        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
-        this.sphere = null;
-        String statusText = getStringFromRowByIndex(row.getCell(9)).trim();
 
+        this.taskDeadlineRepeat =null;
+
+        String statusText = getStringFromRowByIndex(row.getCell(9)).trim();
         if (statusText.equalsIgnoreCase("В работе"))
             this.status = "IN_PROGRESS";
         else if (statusText.equalsIgnoreCase("Исполнено"))
@@ -55,17 +55,12 @@ public class ExcellData {
             this.status = "NOT_DONE";
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
-//        if (status.equalsIgnoreCase("DONE")) {
-//            String doneStatusText = getStringFromRowByIndex(row.getCell(10));
-//            if (doneStatusText.equalsIgnoreCase("Полное исполнение"))
-//                this.doneStatus = "FULL";
-//            else if (doneStatusText.equalsIgnoreCase("РКЗ")) {
-//                this.doneStatus = "VICE_CONTROL";
-//            } else if (doneStatusText.equalsIgnoreCase("Дублирование")) {
-//                this.doneStatus = "DUPLICATE";
-//            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
-//        }
+
+
         this.protocolType = getStringFromRowByIndex(row.getCell(10));
+
+        if (protocolPoint == null || protocolPoint.isEmpty())
+            throw new RuntimeException("ERROR: protocolPoint is null or empty");
     }
 
     public static String getStringFromRowByIndex(Cell cell) {
@@ -87,19 +82,9 @@ public class ExcellData {
             if (cell.getCellType().equals(CellType.NUMERIC))
                 return cell.getDateCellValue();
         }
-        System.out.println("cannot get date");
         return null;
     }
 
-    public static Integer getIntegerFromRowByIndex(Cell cell) {
-        if (cell != null) {
-            if (cell.getCellType().equals(CellType.STRING))
-                return Integer.valueOf(cell.getStringCellValue());
-            if (cell.getCellType().equals(CellType.NUMERIC))
-                return (int) cell.getNumericCellValue();
-        }
-        return 0;
-    }
 
     public static Date getDateFromString(String date) {
         List<String> formatStrings = Arrays.asList("dd/MM/yyyy", "dd.MM.yyyy");
@@ -112,6 +97,17 @@ public class ExcellData {
         System.out.println(date + " IT IS DATE");
         return null;
 
+    }
+
+
+    public static Integer getIntegerFromRowByIndex(Cell cell) {
+        if (cell != null) {
+            if (cell.getCellType().equals(CellType.STRING))
+                return Integer.valueOf(cell.getStringCellValue());
+            if (cell.getCellType().equals(CellType.NUMERIC))
+                return (int) cell.getNumericCellValue();
+        }
+        return 0;
     }
 
     private static Date getEndOfDate(Date date) {
@@ -127,6 +123,12 @@ public class ExcellData {
         return null;
     }
 
+    private ArrayList<String> getArrayFromText(String userControllersAsText) {
+        if (userControllersAsText == null)
+            throw new RuntimeException("NULL EXCEPTION");
+        return new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
+    }
+
     private String getProtocolDate(String taskText) {
         String result = "empty";
         Matcher m = Pattern.compile("(\\d{1,2}.\\d{1,2}.\\d{4}|\\d{1,2}.\\d{1,2})", Pattern.CASE_INSENSITIVE).matcher(taskText);
@@ -139,15 +141,16 @@ public class ExcellData {
     @Override
     public String toString() {
         return "ExcellData{" +
-                "protocolName='" + protocolName + '\'' +
-                ", protocolDate=" + protocolDate +
                 ", protocolNumber='" + protocolNumber + '\'' +
-                ", protocolPoint=" + protocolPoint +
+                ", protocolDate=" + protocolDate +
+                ", protocolName='" + protocolName + '\'' +
+                ", protocolPoint='" + protocolPoint + '\'' +
                 ", taskText='" + taskText + '\'' +
-                ", userControllers=" + userControllers +
-                ", departments=" + departments +
+                ", taskDeadlineRepeat='" + taskDeadlineRepeat + '\'' +
                 ", deadline=" + deadline +
                 ", sphere='" + sphere + '\'' +
+                ", userControllers=" + userControllers +
+                ", departments=" + departments +
                 ", result='" + result + '\'' +
                 ", status='" + status + '\'' +
                 ", protocolType='" + protocolType + '\'' +
