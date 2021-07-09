@@ -19,6 +19,7 @@ public class ExcellData {
     public List<String> userControllers;
     public List<String> departments;
     public Date deadline;
+    public String deadlineRepeat;
     public String result;
     public String sphere;
     public String status;
@@ -38,21 +39,33 @@ public class ExcellData {
         String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
         this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
         this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(7)));
+        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(8));
 
-        this.result = getStringFromRowByIndex(row.getCell(8));
+        if (deadlineRepeatText.equalsIgnoreCase("ежемесячно"))
+            this.deadlineRepeat = "MONTH";
+        else if (deadlineRepeatText.equalsIgnoreCase("разово"))
+            this.deadlineRepeat = null;
+        else throw new RuntimeException("SOMETHING WRONG WITH DEADLINE REPEAT");
+
+        this.result = getStringFromRowByIndex(row.getCell(9));
 
 //        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
 //        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
 //        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
         this.sphere = null;
-        String statusText = getStringFromRowByIndex(row.getCell(9)).trim();
+        String statusText = getStringFromRowByIndex(row.getCell(10)).trim();
 
         if (statusText.equalsIgnoreCase("В работе"))
             this.status = "IN_PROGRESS";
         else if (statusText.equalsIgnoreCase("Исполнено"))
             this.status = "DONE";
-        else if (statusText.equalsIgnoreCase("Не исполнено"))
-            this.status = "NOT_DONE";
+        else if (statusText.equalsIgnoreCase("Не исполнено")) {
+            if (this.result != null && !this.result.trim().isEmpty()) {
+                this.status = "ON_APPROVAL";
+            } else {
+                this.status = "NOT_DONE";
+            }
+        }
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
 //        if (status.equalsIgnoreCase("DONE")) {
@@ -65,7 +78,7 @@ public class ExcellData {
 //                this.doneStatus = "DUPLICATE";
 //            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
 //        }
-        this.protocolType = getStringFromRowByIndex(row.getCell(10));
+        this.protocolType = getStringFromRowByIndex(row.getCell(11));
     }
 
     public static String getStringFromRowByIndex(Cell cell) {

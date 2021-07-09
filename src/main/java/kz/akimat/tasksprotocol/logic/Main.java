@@ -19,8 +19,8 @@ import java.util.Objects;
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
         Main objExcelFile = new Main();
-        String fileName = "mcriap_tasks_2.xlsx";
-        String path = "/home/nurbol/akimat/mcriap/";
+        String fileName = "alatau_tasks_final.xlsx";
+        String path = "/Users/wwhysohard/Downloads/";
         Workbook workbook = getExcelDocument(fileName, path);
         objExcelFile.processExcelObject(workbook);
     }
@@ -109,7 +109,7 @@ public class Main {
                 Long taskId = createTask(protocolId, excellData.protocolPoint,
                         excellData.taskText, excellData.deadline,
                         sphereId, excellData.result,
-                        excellData.status, excellData.protocolDate);
+                        excellData.status, excellData.protocolDate, excellData.deadlineRepeat);
                 if (taskId == null) {
                     System.out.println("ERROR: Task with name " + excellData.taskText);
                     throw new RuntimeException("TASK_NOT_CREATED");
@@ -246,10 +246,10 @@ public class Main {
 
     private Long createTask(Long protocolId, String protocolPoint, String taskText, java.util.Date deadlineDate,
                             Long sphereId, String result, String status,
-                            java.util.Date protocolDate) {
+                            java.util.Date protocolDate, String deadlineRepeat) {
         String SQL_INSERT = "INSERT INTO `task`(`created_at`, `updated_at`,`deadline`,`protocol_point`, `result`, " +
-                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`) " +
-                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?)";
+                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`,`task_deadline_repeat`) " +
+                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?)";
         Date deadline = null;
         if (deadlineDate != null) {
             deadline = new java.sql.Date(deadlineDate.getTime());
@@ -277,7 +277,10 @@ public class Main {
             if (status.equalsIgnoreCase("DONE")) {
                 statement.setDate(9, inspectorResultDate);
             } else statement.setNull(9, Types.NULL);
-
+            if (deadlineRepeat == null) 
+                statement.setNull(10, java.sql.Types.NULL);
+            else 
+                statement.setString(10, deadlineRepeat);
 
             int affectedRows = statement.executeUpdate();
 
