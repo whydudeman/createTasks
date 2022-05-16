@@ -19,7 +19,6 @@ public class UserUtils {
                     "                    left join department d ON d.id = p.department_id\n" +
                     "                    left join role_user r on u.id=r.user_id\n" +
                     "                    LEFT JOIN role role on role.id=r.role_id\n" +
-                    "                    WHERE active=true  \n" +
                     "                    GROUP BY u.id order by u.id");
             List<User> users = new ArrayList();
             while (rs.next()) {
@@ -37,9 +36,9 @@ public class UserUtils {
             con.close();
             return users;
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
+            throw new RuntimeException("EMPTY_USERS_FROM_DATABASE");
         }
-        return new ArrayList<>();
     }
 
     public static Long getUserId(String name, List<User> users) {

@@ -29,24 +29,26 @@ public class ExcellData {
     public String sphere;//11
 
     public ExcellData(Row row) {
-        this.protocolName = getStringFromRowByIndex(row.getCell(0));
-        this.protocolDate = getDateFromRowByIndex(row.getCell(1));
-        this.protocolNumber = getStringFromRowByIndex(row.getCell(2));
-        this.protocolPoint = getStringFromRowByIndex(row.getCell(3));
+        this.id = getIntegerFromRowByIndex(row.getCell(0));
+        this.protocolName = getStringFromRowByIndex(row.getCell(1));
+        this.protocolDate = getDateFromRowByIndex(row.getCell(2));
+        this.protocolNumber = getStringFromRowByIndex(row.getCell(3));
+        this.protocolPoint = getStringFromRowByIndex(row.getCell(4));
 
-        this.taskText = getStringFromRowByIndex(row.getCell(4));
-        String userControllersAsText = getStringFromRowByIndex(row.getCell(5));
+        this.taskText = getStringFromRowByIndex(row.getCell(5));
+        String userControllersAsText = getStringFromRowByIndex(row.getCell(6));
         this.userControllers = getArrayFromText(userControllersAsText);
 
-        String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
+        String departmentsAsText = getStringFromRowByIndex(row.getCell(7));
         this.departments = getArrayFromText(departmentsAsText);
-        this.deadline = getDateFromRowByIndex(row.getCell(7));
-        this.result = getStringFromRowByIndex(row.getCell(8));
+        this.deadline = getDateFromRowByIndex(row.getCell(8));
+        this.taskDeadlineRepeat = getTaskDeadlineRepeat(getStringFromRowByIndex(row.getCell(9)));
+        this.result = getStringFromRowByIndex(row.getCell(10));
 
 
-        this.taskDeadlineRepeat =null;
 
-        String statusText = getStringFromRowByIndex(row.getCell(9)).trim();
+
+        String statusText = getStringFromRowByIndex(row.getCell(11)).trim();
         if (statusText.equalsIgnoreCase("В работе"))
             this.status = "IN_PROGRESS";
         else if (statusText.equalsIgnoreCase("Исполнено"))
@@ -57,18 +59,28 @@ public class ExcellData {
 
 
 
-        this.protocolType = getStringFromRowByIndex(row.getCell(10));
+        this.protocolType = getStringFromRowByIndex(row.getCell(12));
 
         if (protocolPoint == null || protocolPoint.isEmpty())
             throw new RuntimeException("ERROR: protocolPoint is null or empty");
+    }
+
+    private String getTaskDeadlineRepeat(String stringFromRowByIndex) {
+        if(stringFromRowByIndex!=null
+                && !stringFromRowByIndex.isEmpty()
+                && stringFromRowByIndex.trim().toLowerCase().contains("ежемесячно")) {
+            return "MONTH";
+        }
+        return null;
     }
 
     public static String getStringFromRowByIndex(Cell cell) {
         if (cell != null && cell.getCellType() != CellType.BLANK) {
             if (cell.getCellType().equals(CellType.STRING))
                 return cell.getStringCellValue().trim();
-            if (cell.getCellType().equals(CellType.NUMERIC))
+            if (cell.getCellType().equals(CellType.NUMERIC)) {
                 return String.valueOf((int) cell.getNumericCellValue()).trim();
+            }
             throw new RuntimeException("CANNOT GET CELL VALUE");
         } else
             return null;
@@ -141,19 +153,19 @@ public class ExcellData {
     @Override
     public String toString() {
         return "ExcellData{" +
-                ", protocolNumber='" + protocolNumber + '\'' +
-                ", protocolDate=" + protocolDate +
-                ", protocolName='" + protocolName + '\'' +
-                ", protocolPoint='" + protocolPoint + '\'' +
-                ", taskText='" + taskText + '\'' +
-                ", taskDeadlineRepeat='" + taskDeadlineRepeat + '\'' +
-                ", deadline=" + deadline +
-                ", sphere='" + sphere + '\'' +
-                ", userControllers=" + userControllers +
-                ", departments=" + departments +
-                ", result='" + result + '\'' +
-                ", status='" + status + '\'' +
-                ", protocolType='" + protocolType + '\'' +
+                ",\n protocolNumber='" + protocolNumber + '\'' +
+                ",\n protocolDate=" + protocolDate +
+                ", \nprotocolName='" + protocolName + '\'' +
+                ", \nprotocolPoint='" + protocolPoint + '\'' +
+                ", \ntaskText='" + taskText + '\'' +
+                ", \ntaskDeadlineRepeat='" + taskDeadlineRepeat + '\'' +
+                ", \ndeadline=" + deadline +
+                ", \nsphere='" + sphere + '\'' +
+                ", \nuserControllers=" + userControllers +
+                ", \ndepartments=" + departments +
+                ", \nresult='" + result + '\'' +
+                ", \nstatus='" + status + '\'' +
+                ", \nprotocolType='" + protocolType + '\'' +
                 '}';
     }
 }

@@ -19,8 +19,8 @@ import java.util.*;
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
         Main objExcelFile = new Main();
-        String fileName = "first_tasks.xlsx";
-        String path = "/home/nurbol/akimat/karaganda/";
+        String fileName = "tasks_2.xlsx";
+        String path = "/home/nurbol/akimat/ekibastuz/";
         Workbook workbook = getExcelDocument(fileName, path);
         objExcelFile.processExcelObject(workbook);
     }
@@ -37,6 +37,7 @@ public class Main {
         } else if (fileExtensionName.equals(".xls")) {
             workbook = new HSSFWorkbook(inputStream);
         }
+
         return workbook;
     }
 
@@ -65,7 +66,6 @@ public class Main {
     public void processExcelObject(Workbook workbook) throws SQLException {
         for (int i = 0; i < Objects.requireNonNull(workbook).getNumberOfSheets(); i++) {
             Sheet sheet = workbook.getSheetAt(i);
-//            System.out.println(sheet.getSheetName());
 //            int rowCount = sheet.getLastRowNum() - sheet.getFirstRowNum();
             for (int j = 1; j <= 1600; j++) {
                 Row row = sheet.getRow(j);
@@ -78,7 +78,7 @@ public class Main {
     private void insertAndUpdateTask(Row row) {
         List<User> users = UserUtils.getUsers();
         ExcellData excellData = new ExcellData(row);
-        System.out.println(excellData.toString());
+//        System.out.println(excellData.toString());
         if (excellData.protocolNumber != null && !excellData.protocolNumber.trim().isEmpty()
                 && excellData.protocolPoint != null && !excellData.protocolPoint.isEmpty()
                 && excellData.protocolDate != null && excellData.deadline != null) {
@@ -125,7 +125,8 @@ public class Main {
                 createTaskRelatedObjects(excellData, userId, executorIds);
             }
 
-        }
+        } else
+            throw new RuntimeException("INVALID_ROW");
     }
 
     private void createTaskRelatedObjects(ExcellData excellData, List<Long> userId, List<Long> executorIds) {
@@ -221,10 +222,10 @@ public class Main {
     }
 
     private Long getProtocolIfExists(String protocolNumber) {
-        String SQL_SELECT = "SELECT id from protocol where protocol_number=?";
+        String SQL_SELECT = "SELECT id from protocol where protocol_number like ?";
         try (Connection conn = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
              PreparedStatement preparedStatement = conn.prepareStatement(SQL_SELECT)) {
-            preparedStatement.setString(1, protocolNumber);
+            preparedStatement.setString(1, "%"+protocolNumber+"%");
             ResultSet rs = preparedStatement.executeQuery();
             while (rs.next()) {
                 return rs.getLong(1);
@@ -304,7 +305,7 @@ public class Main {
             statement.setLong(6, protocolId);
             statement.setDate(7, deadline);
             statement.setDate(8, inspectorResultDate);
-            statement.setNull(9, Types.NULL);
+            statement.setString(9, taskDeadlineRepeat);
             int affectedRows = statement.executeUpdate();
 
             if (affectedRows == 0) {
@@ -403,14 +404,14 @@ public class Main {
     }
 
     private List<Long> getExecutionGroupUsersByExecutionGroupId(Long executionGroupId) {
-        String SQL_SELECT = "SELECT egu.users_id from execution_group_users egu where egu.execution_group_id = ?";
+        String SQL_SELECT = "SELECT egu.positions_id from execution_group_positions egu where egu.execution_group_id = ?";
         try (Connection conn = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
              PreparedStatement preparedStatement = conn.prepareStatement(SQL_SELECT)) {
             preparedStatement.setLong(1, executionGroupId);
             ResultSet rs = preparedStatement.executeQuery();
             List<Long> userIds = new ArrayList<>();
             while (rs.next()) {
-                userIds.add(rs.getLong("users_id"));
+                userIds.add(rs.getLong("positions_id"));
             }
             return userIds;
         } catch (SQLException e) {
