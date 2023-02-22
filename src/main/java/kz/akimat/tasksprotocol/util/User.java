@@ -34,7 +34,7 @@ public class User {
     }
 
     public void setName(String name) {
-        String fio[] = name.split(" ");
+        String fio[] = name.split("\\s+");
         if (fio.length > 2) {
             this.name = fio[0] + " " + fio[1].substring(0, 1) + "" + fio[2].substring(0, 1);
         } else if (fio.length > 1) {
@@ -49,7 +49,7 @@ public class User {
     }
 
     public void setNameWithSpace(String nameWithSpace) {
-        String fio[] = nameWithSpace.split(" ");
+        String fio[] = nameWithSpace.split("\\s+");
         if (fio.length > 2) {
             this.nameWithSpace = fio[0] + " " + fio[1].substring(0, 1) + " " + fio[2].substring(0, 1);
         } else if (fio.length > 1) {
