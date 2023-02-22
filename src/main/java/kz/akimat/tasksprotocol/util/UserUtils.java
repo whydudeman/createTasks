@@ -57,7 +57,7 @@ public class UserUtils {
         for (String name : names) {
             for (User user : users) {
 //                System.out.println(name+" ||  "+user.getNameNoChange());
-                if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim())) || (levenstain(user.getNameNoChange(), name.trim()) < 1 || levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4)) && (user.getRoles().contains("VICE AKIM"))) {
+                if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim())) || (levenstain(user.getNameNoChange(), name.trim()) < 1 || levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4))) {
                     ids.add(user.getId());
                     break;
                 }
@@ -69,7 +69,7 @@ public class UserUtils {
             for (String name : names) {
                 System.out.println("Excell UserName: " + name);
                 for (User user : users) {
-                    if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim()) || levenstain(user.getNameNoChange(), name) < 2 || levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)) && (user.getRoles().contains("VICE AKIM")))
+                    if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim()) || levenstain(user.getNameNoChange(), name) < 2 || levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)))
                         System.out.println("User Name: " + user.getName() + " User Id: " + user.getId() + "User Name: " + user.getNameNoChange() + " ROLE: " + user.getRoles().toString());
                 }
 

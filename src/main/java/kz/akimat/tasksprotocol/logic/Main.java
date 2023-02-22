@@ -19,7 +19,7 @@ import java.util.Objects;
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
         Main objExcelFile = new Main();
-        String fileName = "alatau_tasks_final.xlsx";
+        String fileName = "protocols.xlsx";
         String path = "/Users/wwhysohard/Downloads/";
         Workbook workbook = getExcelDocument(fileName, path);
         objExcelFile.processExcelObject(workbook);
@@ -62,15 +62,12 @@ public class Main {
         }
     }
 
-    public void processExcelObject(Workbook workbook) throws SQLException {
+    public void processExcelObject(Workbook workbook) {
         for (int i = 0; i < Objects.requireNonNull(workbook).getNumberOfSheets(); i++) {
             Sheet sheet = workbook.getSheetAt(i);
-//            System.out.println(sheet.getSheetName());
-//            int rowCount = sheet.getLastRowNum() - sheet.getFirstRowNum();
             for (int j = 1; j <= 1600; j++) {
                 Row row = sheet.getRow(j);
                 insertAndUpdateTask(row);
-                System.out.println(j + 1);
             }
         }
     }
@@ -78,13 +75,12 @@ public class Main {
     private void insertAndUpdateTask(Row row) {
         List<User> users = UserUtils.getUsers();
         ExcellData excellData = new ExcellData(row);
-//        System.out.println(excellData.toString());
         if (excellData.protocolNumber != null && !excellData.protocolNumber.trim().isEmpty()
-                && excellData.protocolPoint != null && !excellData.protocolPoint.isEmpty()
                 && excellData.protocolDate != null) {
 
+            Long inspectorId = UserUtils.getUserId(excellData.inspector, users);
             List<Long> userId = UserUtils.getUsersId(excellData.userControllers, users);
-            List<Long> executorIds = UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum());
+            List<Long> executorIds = UserUtils.getUsersId(excellData.executors, users);
             if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty())
                 System.out.println("SKIPPING_TASK");
             else {
@@ -95,7 +91,7 @@ public class Main {
 
                 Long protocolId = getProtocolIfExists(excellData.protocolNumber);
                 if (protocolId == null) {
-                    protocolId = insertProtocol(excellData.protocolName, excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
+                    protocolId = insertProtocol(excellData.protocolNumber, excellData.protocolDate, protocolTypeId, "APPROVED");
                 }
 
                 Long sphereId = null;
@@ -109,7 +105,8 @@ public class Main {
                 Long taskId = createTask(protocolId, excellData.protocolPoint,
                         excellData.taskText, excellData.deadline,
                         sphereId, excellData.result,
-                        excellData.status, excellData.protocolDate, excellData.deadlineRepeat);
+                        excellData.status, excellData.protocolDate, excellData.deadlineRepeat,
+                        excellData.timelessEndDate, inspectorId);
                 if (taskId == null) {
                     System.out.println("ERROR: Task with name " + excellData.taskText);
                     throw new RuntimeException("TASK_NOT_CREATED");
@@ -210,18 +207,18 @@ public class Main {
         return null;
     }
 
-    private Long insertProtocol(String protocolName, String protocolNumber, java.util.Date date, Long protocolTypeId, String status) {
-        String SQL_INSERT = "INSERT INTO `protocol` (`title`, `protocol_number`,`date`,`protocol_type_id`,`status`) VALUES (?, ?,?,?,?);";
+    private Long insertProtocol(String protocolNumber, java.util.Date date, Long protocolTypeId, String status) {
+        String SQL_INSERT = "INSERT INTO `protocol` (`protocol_number`,`date`,`protocol_type_id`,`status`) VALUES (?,?,?,?);";
         try (
                 Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
                 PreparedStatement statement = connection.prepareStatement(SQL_INSERT,
                         Statement.RETURN_GENERATED_KEYS);
         ) {
-            statement.setString(1, protocolName);
-            statement.setString(2, protocolNumber);
-            statement.setDate(3, new java.sql.Date(date.getTime()));
-            statement.setLong(4, protocolTypeId);
-            statement.setString(5, status);
+            statement.setString(1, protocolNumber);
+            Date protocolDate = new java.sql.Date(date.getTime());
+            statement.setDate(2, protocolDate);
+            statement.setLong(3, protocolTypeId);
+            statement.setString(4, status);
 
             int affectedRows = statement.executeUpdate();
 
@@ -246,10 +243,11 @@ public class Main {
 
     private Long createTask(Long protocolId, String protocolPoint, String taskText, java.util.Date deadlineDate,
                             Long sphereId, String result, String status,
-                            java.util.Date protocolDate, String deadlineRepeat) {
+                            java.util.Date protocolDate, String deadlineRepeat, java.util.Date timelessEndDate, Long inspectorId) {
         String SQL_INSERT = "INSERT INTO `task`(`created_at`, `updated_at`,`deadline`,`protocol_point`, `result`, " +
-                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`,`task_deadline_repeat`) " +
-                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?)";
+                "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`," +
+                "`task_deadline_repeat`, `timeless_end_date`, `inspector_id`, `no_inspector`) " +
+                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?,?,?, false)";
         Date deadline = null;
         if (deadlineDate != null) {
             deadline = new java.sql.Date(deadlineDate.getTime());
@@ -257,6 +255,10 @@ public class Main {
         Date inspectorResultDate = null;
         if (protocolDate != null) {
             inspectorResultDate = new java.sql.Date(protocolDate.getTime());
+        }
+        Date timelessEndSqlDate = null;
+        if (timelessEndDate != null) {
+            timelessEndSqlDate = new java.sql.Date(timelessEndDate.getTime());
         }
         try (
                 Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
@@ -281,6 +283,11 @@ public class Main {
                 statement.setNull(10, java.sql.Types.NULL);
             else 
                 statement.setString(10, deadlineRepeat);
+
+            if (timelessEndSqlDate != null) statement.setDate(11, timelessEndSqlDate);
+            else statement.setNull(11, Types.NULL);
+
+            statement.setLong(12, inspectorId);
 
             int affectedRows = statement.executeUpdate();
 

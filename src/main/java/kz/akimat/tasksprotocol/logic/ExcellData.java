@@ -11,50 +11,63 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ExcellData {
-    public String protocolName;
-    public Date protocolDate;
     public String protocolNumber;
+    public Date protocolDate;
+    public String protocolType;
     public String protocolPoint;
     public String taskText;
-    public List<String> userControllers;
-    public List<String> departments;
-    public Date deadline;
-    public String deadlineRepeat;
-    public String result;
     public String sphere;
+    public String inspector;
+    public List<String> executors;
+    public List<String> userControllers;
+    public String deadlineRepeat;
+    public Date deadline;
+    public Date timelessEndDate;
+    public String result;
     public String status;
-//    public String doneStatus;
-    public String protocolType;
 
     public ExcellData(Row row) {
-        this.protocolName = getStringFromRowByIndex(row.getCell(0));
-        this.protocolDate = getDateFromRowByIndex(row.getCell(1));
-        this.protocolNumber = getStringFromRowByIndex(row.getCell(2));
-        this.protocolPoint = getStringFromRowByIndex(row.getCell(3));
+        this.protocolNumber = getStringFromRowByIndex(row.getCell(1));
+        this.protocolDate = getDateFromRowByIndex(row.getCell(2));
+        this.protocolType = getStringFromRowByIndex(row.getCell(3));
+        this.protocolPoint = getStringFromRowByIndex(row.getCell(4));
         if (protocolPoint == null || protocolPoint.isEmpty())
             throw new RuntimeException("ERROR: protocolPoint is null or empty");
-        this.taskText = getStringFromRowByIndex(row.getCell(4));
-        String userControllersAsText = getStringFromRowByIndex(row.getCell(5));
-        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
-        String departmentsAsText = getStringFromRowByIndex(row.getCell(6));
-        this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
-        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(7)));
-        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(8));
+        this.taskText = getStringFromRowByIndex(row.getCell(5));
 
+        //        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
+//        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
+//        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
+        this.sphere = getStringFromRowByIndex(row.getCell(6));
+        this.inspector = getStringFromRowByIndex(row.getCell(7));
+
+        String executors = getStringFromRowByIndex(row.getCell(8));
+        this.executors = new ArrayList<>(Arrays.asList(executors.trim().split(",")));
+
+        String userControllersAsText = getStringFromRowByIndex(row.getCell(10)); // FIXME: skipped 1 column
+        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
+
+        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(11));
         if (deadlineRepeatText.equalsIgnoreCase("ежемесячно"))
             this.deadlineRepeat = "MONTH";
         else if (deadlineRepeatText.equalsIgnoreCase("разово"))
             this.deadlineRepeat = null;
+        else if (deadlineRepeatText.equalsIgnoreCase("еженедельно"))
+            this.deadlineRepeat = "WEEKLY";
+        else if (deadlineRepeatText.equalsIgnoreCase("ежеквартально"))
+            this.deadlineRepeat = "QUARTERLY";
+        else if (deadlineRepeatText.equalsIgnoreCase("пологодой")) // FIXME: полУгодоВОй (?)
+            this.deadlineRepeat = "SEMI_ANNUAL";
+        else if (deadlineRepeatText.equalsIgnoreCase("годовой"))
+            this.deadlineRepeat = "ANNUAL";
         else throw new RuntimeException("SOMETHING WRONG WITH DEADLINE REPEAT");
 
-        this.result = getStringFromRowByIndex(row.getCell(9));
+        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(12)));
+        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(14))); // FIXME: skipped 1 column
 
-//        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
-//        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
-//        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
-        this.sphere = null;
-        String statusText = getStringFromRowByIndex(row.getCell(10)).trim();
+        this.result = getStringFromRowByIndex(row.getCell(15));
 
+        String statusText = getStringFromRowByIndex(row.getCell(16)).trim();
         if (statusText.equalsIgnoreCase("В работе"))
             this.status = "IN_PROGRESS";
         else if (statusText.equalsIgnoreCase("Исполнено"))
@@ -78,7 +91,6 @@ public class ExcellData {
 //                this.doneStatus = "DUPLICATE";
 //            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
 //        }
-        this.protocolType = getStringFromRowByIndex(row.getCell(11));
     }
 
     public static String getStringFromRowByIndex(Cell cell) {
@@ -152,13 +164,12 @@ public class ExcellData {
     @Override
     public String toString() {
         return "ExcellData{" +
-                "protocolName='" + protocolName + '\'' +
                 ", protocolDate=" + protocolDate +
                 ", protocolNumber='" + protocolNumber + '\'' +
                 ", protocolPoint=" + protocolPoint +
                 ", taskText='" + taskText + '\'' +
                 ", userControllers=" + userControllers +
-                ", departments=" + departments +
+                ", executors=" + executors +
                 ", deadline=" + deadline +
                 ", sphere='" + sphere + '\'' +
                 ", result='" + result + '\'' +
