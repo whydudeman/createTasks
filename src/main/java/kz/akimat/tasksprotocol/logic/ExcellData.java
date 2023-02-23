@@ -68,17 +68,18 @@ public class ExcellData {
         this.result = getStringFromRowByIndex(row.getCell(15));
 
         String statusText = getStringFromRowByIndex(row.getCell(16)).trim();
-        if (statusText.equalsIgnoreCase("В работе"))
-            this.status = "IN_PROGRESS";
-        else if (statusText.equalsIgnoreCase("Исполнено"))
+        if (statusText.equalsIgnoreCase("исполнен"))
             this.status = "DONE";
-        else if (statusText.equalsIgnoreCase("Не исполнено")) {
-            if (this.result != null && !this.result.trim().isEmpty()) {
-                this.status = "ON_APPROVAL";
-            } else {
-                this.status = "NOT_DONE";
-            }
-        }
+        else if (statusText.equalsIgnoreCase("не исполнено"))
+            this.status = "NOT_DONE";
+        else if (statusText.equalsIgnoreCase("на исполнении"))
+            this.status = "IN_PROGRESS";
+        else if (statusText.equalsIgnoreCase("на согласовании у инспектора"))
+            this.status = "ON_APPROVAL";
+        else if (statusText.equalsIgnoreCase("на согласовании у ОДОиК"))
+            this.status = "EXTRA_APPROVE";
+        else if (statusText.equalsIgnoreCase("на согласовании и замрукапа"))
+            this.status = "AGREED";
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
 //        if (status.equalsIgnoreCase("DONE")) {
