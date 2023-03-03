@@ -81,9 +81,10 @@ public class Main {
             Long inspectorId = UserUtils.getUserId(excellData.inspector, users);
             List<Long> userId = UserUtils.getUsersId(excellData.userControllers, users);
             List<Long> executorIds = UserUtils.getUsersId(excellData.executors, users);
-            if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty())
+            if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty()) {
                 System.out.println("SKIPPING_TASK");
-            else {
+                System.out.println("ROW NUMBER: " + row.getRowNum());
+            } else {
                 Long protocolTypeId = getProtocolTypeIfExists(excellData.protocolType);
                 if (protocolTypeId == null) {
                     protocolTypeId = insertProtocolType(excellData.protocolType);
@@ -99,6 +100,7 @@ public class Main {
                     sphereId = getSphere(excellData.sphere);
                     if (sphereId == null) {
                         System.out.println("WARNING: Sphere not found");
+                        System.out.println("Name: " + excellData.sphere);
                         throw new RuntimeException("SPHERE_NOT_FOUND");
                     }
                 }

@@ -42,12 +42,12 @@ public class ExcellData {
         this.inspector = getStringFromRowByIndex(row.getCell(7));
 
         String executors = getStringFromRowByIndex(row.getCell(8));
-        this.executors = new ArrayList<>(Arrays.asList(executors.trim().split(",")));
+        this.executors = new ArrayList<>(Arrays.asList(executors.trim().split("\n")));
 
-        String userControllersAsText = getStringFromRowByIndex(row.getCell(10)); // FIXME: skipped 1 column
-        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split(",")));
+        String userControllersAsText = getStringFromRowByIndex(row.getCell(9));
+        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split("\n")));
 
-        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(11));
+        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(10));
         if (deadlineRepeatText.equalsIgnoreCase("ежемесячно"))
             this.deadlineRepeat = "MONTH";
         else if (deadlineRepeatText.equalsIgnoreCase("разово"))
@@ -62,13 +62,13 @@ public class ExcellData {
             this.deadlineRepeat = "ANNUAL";
         else throw new RuntimeException("SOMETHING WRONG WITH DEADLINE REPEAT");
 
-        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(12)));
-        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(14))); // FIXME: skipped 1 column
+        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(11)));
+        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(13)));
 
-        this.result = getStringFromRowByIndex(row.getCell(15));
+        this.result = getStringFromRowByIndex(row.getCell(14));
 
-        String statusText = getStringFromRowByIndex(row.getCell(16)).trim();
-        if (statusText.equalsIgnoreCase("исполнен"))
+        String statusText = getStringFromRowByIndex(row.getCell(15)).trim();
+        if (statusText.equalsIgnoreCase("исполнено"))
             this.status = "DONE";
         else if (statusText.equalsIgnoreCase("не исполнено"))
             this.status = "NOT_DONE";
@@ -113,7 +113,7 @@ public class ExcellData {
             if (cell.getCellType().equals(CellType.NUMERIC))
                 return cell.getDateCellValue();
         }
-        System.out.println("cannot get date");
+        System.out.println("cannot get date: " + cell.getRow().getRowNum() + " | " + cell.getColumnIndex());
         return null;
     }
 

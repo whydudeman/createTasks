@@ -42,10 +42,10 @@ public class UserUtils {
 
     public static Long getUserId(String name, List<User> users) {
         if (name != null && !name.isEmpty()) {
-            Long id = users.stream().filter(user -> user.getNameNoChange().equals(name)).map(User::getId).findAny().orElse(null);
+            Long id = users.stream().filter(user -> user.getNameNoChange().equals(name.trim())).map(User::getId).findAny().orElse(null);
             if (id == null)
                 id = users.stream().filter(user ->
-                        levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)
+                        levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4)
                         .map(User::getId).findFirst().orElse(null);
             return id;
         }
@@ -55,26 +55,14 @@ public class UserUtils {
     public static List<Long> getUsersId(List<String> names, List<User> users) {
         List<Long> ids = new ArrayList<>();
         for (String name : names) {
-            for (User user : users) {
-//                System.out.println(name+" ||  "+user.getNameNoChange());
-                if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim())) || (levenstain(user.getNameNoChange(), name.trim()) < 1 || levenstain(user.getName(), name.trim()) < 4 || levenstain(user.getNameWithSpace(), name.trim()) < 4))) {
-                    ids.add(user.getId());
-                    break;
-                }
-            }
-
-        }
-        if (names.size() != ids.size()) {
-            System.out.println("USER_ERROR: Some User was not found");
-            for (String name : names) {
-                System.out.println("Excell UserName: " + name);
-                for (User user : users) {
-                    if (((user.getNameNoChange().trim().equalsIgnoreCase(name.trim()) || levenstain(user.getNameNoChange(), name) < 2 || levenstain(user.getName(), name) < 4 || levenstain(user.getNameWithSpace(), name) < 4)))
-                        System.out.println("User Name: " + user.getName() + " User Id: " + user.getId() + "User Name: " + user.getNameNoChange() + " ROLE: " + user.getRoles().toString());
-                }
-
+            Long id = getUserId(name, users);
+            if (id == null) {
+                System.out.println("USER_ERROR: Some User was not found:" + name);
+            } else {
+                ids.add(id);
             }
         }
+
         return ids;
     }
 
