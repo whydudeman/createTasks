@@ -210,7 +210,7 @@ public class Main {
     }
 
     private Long insertProtocol(String protocolNumber, java.util.Date date, Long protocolTypeId, String status) {
-        String SQL_INSERT = "INSERT INTO `protocol` (`protocol_number`,`date`,`protocol_type_id`,`status`) VALUES (?,?,?,?);";
+        String SQL_INSERT = "INSERT INTO `protocol` (`created_at`, `updated_at`,`protocol_number`,`date`,`protocol_type_id`,`status`,`title`) VALUES (NOW(), NOW(),?,?,?,?,?);";
         try (
                 Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
                 PreparedStatement statement = connection.prepareStatement(SQL_INSERT,
@@ -221,6 +221,7 @@ public class Main {
             statement.setDate(2, protocolDate);
             statement.setLong(3, protocolTypeId);
             statement.setString(4, status);
+            statement.setString(5, "Протокол сгенерирован системой");
 
             int affectedRows = statement.executeUpdate();
 
