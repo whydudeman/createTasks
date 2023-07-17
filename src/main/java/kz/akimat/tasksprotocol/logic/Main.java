@@ -63,12 +63,12 @@ public class Main {
     }
 
     public void processExcelObject(Workbook workbook) {
-        for (int i = 0; i < Objects.requireNonNull(workbook).getNumberOfSheets(); i++) {
-            Sheet sheet = workbook.getSheetAt(i);
-            for (int j = 1; j <= 1600; j++) {
-                Row row = sheet.getRow(j);
-                insertAndUpdateTask(row);
-            }
+        Sheet sheet = workbook.getSheetAt(0);
+        for (int j = 1; j <= 1600; j++) {
+            System.out.println("<--------------------->");
+            System.out.println(j);
+            Row row = sheet.getRow(j);
+            insertAndUpdateTask(row);
         }
     }
 
@@ -350,7 +350,7 @@ public class Main {
                 statement.executeUpdate();
                 // ...
             } catch (SQLException e) {
-                System.out.println("ERROR: EXECUTION: TASK AND USER ALREADY EXISTS");
+                System.out.println("ERROR: EXECUTION: эTASK AND USER ALREADY EXISTS");
             }
             count++;
         }

@@ -27,24 +27,27 @@ public class ExcellData {
     public String status;
 
     public ExcellData(Row row) {
-        this.protocolNumber = getStringFromRowByIndex(row.getCell(1));
-        this.protocolDate = getDateFromRowByIndex(row.getCell(2));
-        this.protocolType = getStringFromRowByIndex(row.getCell(3));
-        this.protocolPoint = getStringFromRowByIndex(row.getCell(4));
+        this.protocolNumber = getStringFromRowByIndex(row.getCell(0));
+        this.protocolDate = getDateFromRowByIndex(row.getCell(1));
+        this.protocolType = getStringFromRowByIndex(row.getCell(2));
+        this.protocolPoint = getStringFromRowByIndex(row.getCell(3));
         if (protocolPoint == null || protocolPoint.isEmpty())
             throw new RuntimeException("ERROR: protocolPoint is null or empty");
-        this.taskText = getStringFromRowByIndex(row.getCell(5));
+        this.taskText = getStringFromRowByIndex(row.getCell(4));
 
         //        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
 //        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
 //        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
-        this.sphere = getStringFromRowByIndex(row.getCell(6));
+        this.sphere = getStringFromRowByIndex(row.getCell(5));
         this.inspector = getStringFromRowByIndex(row.getCell(7));
 
-        String executors = getStringFromRowByIndex(row.getCell(8));
-        this.executors = new ArrayList<>(Arrays.asList(executors.trim().split("\n")));
+        String mainExecutor = getStringFromRowByIndex(row.getCell(8));
+        String executors = getStringFromRowByIndex(row.getCell(9));
+        this.executors = new ArrayList<>();
+        this.executors.add(mainExecutor.trim());
+        if (executors != null) this.executors.addAll(Arrays.asList(executors.trim().split("\n")));
 
-        String userControllersAsText = getStringFromRowByIndex(row.getCell(9));
+        String userControllersAsText = getStringFromRowByIndex(row.getCell(6));
         this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split("\n")));
 
         String deadlineRepeatText = getStringFromRowByIndex(row.getCell(10));
@@ -63,11 +66,11 @@ public class ExcellData {
         else throw new RuntimeException("SOMETHING WRONG WITH DEADLINE REPEAT");
 
         this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(11)));
-        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(13)));
+        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(12)));
 
-        this.result = getStringFromRowByIndex(row.getCell(14));
+        this.result = getStringFromRowByIndex(row.getCell(13));
 
-        String statusText = getStringFromRowByIndex(row.getCell(15)).trim();
+        String statusText = getStringFromRowByIndex(row.getCell(14)).trim();
         if (statusText.equalsIgnoreCase("исполнено"))
             this.status = "DONE";
         else if (statusText.equalsIgnoreCase("не исполнено"))
