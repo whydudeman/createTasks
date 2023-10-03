@@ -18,61 +18,35 @@ public class ExcellData {
     public String taskText;
     public String sphere;
     public String inspector;
-    public List<String> executors;
+    public List<String> departments;
     public List<String> userControllers;
     public String deadlineRepeat;
     public Date deadline;
     public Date timelessEndDate;
     public String result;
     public String status;
+    public String registrationEDMSNumber;
+    public Date registrationEDMSDate;
 
     public ExcellData(Row row) {
-        this.protocolNumber = getStringFromRowByIndex(row.getCell(1));
-        this.protocolDate = getDateFromRowByIndex(row.getCell(2));
-        this.protocolType = getStringFromRowByIndex(row.getCell(3));
+        this.protocolNumber = getStringFromRowByIndex(row.getCell(0));
+        this.protocolDate = getDateFromRowByIndex(row.getCell(1));
+        this.registrationEDMSNumber = getStringFromRowByIndex(row.getCell(2));
+        this.registrationEDMSDate = getDateFromRowByIndex(row.getCell(3));
+
         this.protocolPoint = getStringFromRowByIndex(row.getCell(4));
         if (protocolPoint == null || protocolPoint.isEmpty())
             throw new RuntimeException("ERROR: protocolPoint is null or empty");
+
         this.taskText = getStringFromRowByIndex(row.getCell(5));
+        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(6)));
 
-        //        String sphereWithCommas = getStringFromRowByIndex(row.getCell(9));
-//        List<String> sphereSplitByComma = new ArrayList<>(Arrays.asList(sphereWithCommas.trim().split(",")));
-//        this.sphere = sphereSplitByComma.get(0).toLowerCase().trim();
-        this.sphere = getStringFromRowByIndex(row.getCell(6));
-        this.inspector = getStringFromRowByIndex(row.getCell(7));
-
-        String executors = getStringFromRowByIndex(row.getCell(8));
-        this.executors = new ArrayList<>(Arrays.asList(executors.trim().split("\n")));
-
-        String userControllersAsText = getStringFromRowByIndex(row.getCell(9));
-        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split("\n")));
-
-        String deadlineRepeatText = getStringFromRowByIndex(row.getCell(10));
-        if (deadlineRepeatText.equalsIgnoreCase("ежемесячно"))
-            this.deadlineRepeat = "MONTH";
-        else if (deadlineRepeatText.equalsIgnoreCase("разово"))
-            this.deadlineRepeat = null;
-        else if (deadlineRepeatText.equalsIgnoreCase("еженедельно"))
-            this.deadlineRepeat = "WEEKLY";
-        else if (deadlineRepeatText.equalsIgnoreCase("ежеквартально"))
-            this.deadlineRepeat = "QUARTERLY";
-        else if (deadlineRepeatText.equalsIgnoreCase("пологодой")) // FIXME: полУгодоВОй (?)
-            this.deadlineRepeat = "SEMI_ANNUAL";
-        else if (deadlineRepeatText.equalsIgnoreCase("годовой"))
-            this.deadlineRepeat = "ANNUAL";
-        else throw new RuntimeException("SOMETHING WRONG WITH DEADLINE REPEAT");
-
-        this.deadline = getEndOfDate(getDateFromRowByIndex(row.getCell(11)));
-        this.timelessEndDate = getEndOfDate(getDateFromRowByIndex(row.getCell(13)));
-
-        this.result = getStringFromRowByIndex(row.getCell(14));
-
-        String statusText = getStringFromRowByIndex(row.getCell(15)).trim();
-        if (statusText.equalsIgnoreCase("исполнено"))
+        String statusText = getStringFromRowByIndex(row.getCell(7)).trim();
+        if (statusText.equalsIgnoreCase("Исполнен"))
             this.status = "DONE";
-        else if (statusText.equalsIgnoreCase("не исполнено"))
+        else if (statusText.equalsIgnoreCase("Не исполнен"))
             this.status = "NOT_DONE";
-        else if (statusText.equalsIgnoreCase("на исполнении"))
+        else if (statusText.equalsIgnoreCase("На исполнении"))
             this.status = "IN_PROGRESS";
         else if (statusText.equalsIgnoreCase("на согласовании у инспектора"))
             this.status = "ON_APPROVAL";
@@ -82,16 +56,17 @@ public class ExcellData {
             this.status = "AGREED";
         else throw new RuntimeException("SOMETHING WRONG WITH STATUS");
 
-//        if (status.equalsIgnoreCase("DONE")) {
-//            String doneStatusText = getStringFromRowByIndex(row.getCell(10));
-//            if (doneStatusText.equalsIgnoreCase("Полное исполнение"))
-//                this.doneStatus = "FULL";
-//            else if (doneStatusText.equalsIgnoreCase("РКЗ")) {
-//                this.doneStatus = "VICE_CONTROL";
-//            } else if (doneStatusText.equalsIgnoreCase("Дублирование")) {
-//                this.doneStatus = "DUPLICATE";
-//            } else throw new RuntimeException("SOMETHING WRONG WITH DONE_STATUS");
-//        }
+        this.protocolType = getStringFromRowByIndex(row.getCell(8));
+
+        String departmentsAsText = getStringFromRowByIndex(row.getCell(9));
+        this.departments = new ArrayList<>(Arrays.asList(departmentsAsText.trim().split(",")));
+
+        String userControllersAsText = getStringFromRowByIndex(row.getCell(10));
+        this.userControllers = new ArrayList<>(Arrays.asList(userControllersAsText.trim().split("\n")));
+
+        this.sphere = getStringFromRowByIndex(row.getCell(11));
+
+        this.inspector = getStringFromRowByIndex(row.getCell(12));
     }
 
     public static String getStringFromRowByIndex(Cell cell) {
@@ -170,7 +145,7 @@ public class ExcellData {
                 ", protocolPoint=" + protocolPoint +
                 ", taskText='" + taskText + '\'' +
                 ", userControllers=" + userControllers +
-                ", executors=" + executors +
+                ", departments=" + departments +
                 ", deadline=" + deadline +
                 ", sphere='" + sphere + '\'' +
                 ", result='" + result + '\'' +

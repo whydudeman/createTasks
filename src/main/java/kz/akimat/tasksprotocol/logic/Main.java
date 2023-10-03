@@ -13,8 +13,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class Main {
     public static void main(String... strings) throws IOException, SQLException {
@@ -63,13 +65,12 @@ public class Main {
     }
 
     public void processExcelObject(Workbook workbook) {
-        for (int i = 0; i < Objects.requireNonNull(workbook).getNumberOfSheets(); i++) {
-            Sheet sheet = workbook.getSheetAt(i);
-            for (int j = 1; j <= 1600; j++) {
-                Row row = sheet.getRow(j);
-                insertAndUpdateTask(row);
-            }
-        }
+                Sheet sheet = workbook.getSheetAt(0);
+                for (int j = 1; j <= 4000; j++) {
+                    Row row = sheet.getRow(j);
+                    insertAndUpdateTask(row);
+                    System.out.println("<-----------------------| " + j + " |----------------------->");
+                }
     }
 
     private void insertAndUpdateTask(Row row) {
@@ -80,7 +81,7 @@ public class Main {
 
             Long inspectorId = UserUtils.getUserId(excellData.inspector, users);
             List<Long> userId = UserUtils.getUsersId(excellData.userControllers, users);
-            List<Long> executorIds = UserUtils.getUsersId(excellData.executors, users);
+            List<Long> executorIds = UserUtils.getUserIdByDepartment(excellData.departments, users, row.getRowNum());
             if (userId == null || userId.isEmpty() || executorIds == null || executorIds.isEmpty()) {
                 System.out.println("SKIPPING_TASK");
                 System.out.println("ROW NUMBER: " + row.getRowNum());
@@ -108,7 +109,7 @@ public class Main {
                         excellData.taskText, excellData.deadline,
                         sphereId, excellData.result,
                         excellData.status, excellData.protocolDate, excellData.deadlineRepeat,
-                        excellData.timelessEndDate, inspectorId);
+                        excellData.timelessEndDate, inspectorId, excellData.registrationEDMSNumber, excellData.registrationEDMSDate);
                 if (taskId == null) {
                     System.out.println("ERROR: Task with name " + excellData.taskText);
                     throw new RuntimeException("TASK_NOT_CREATED");
@@ -246,11 +247,12 @@ public class Main {
 
     private Long createTask(Long protocolId, String protocolPoint, String taskText, java.util.Date deadlineDate,
                             Long sphereId, String result, String status,
-                            java.util.Date protocolDate, String deadlineRepeat, java.util.Date timelessEndDate, Long inspectorId) {
+                            java.util.Date protocolDate, String deadlineRepeat, java.util.Date timelessEndDate, Long inspectorId,
+                            String registrationEDMSNumber, java.util.Date registrationEDMSDate) {
         String SQL_INSERT = "INSERT INTO `task`(`created_at`, `updated_at`,`deadline`,`protocol_point`, `result`, " +
                 "`status`, `task_text`, `protocol_id`, `sphere_id`, `initial_deadline`,`inspector_result_date`," +
-                "`task_deadline_repeat`, `timeless_end_date`, `inspector_id`, `no_inspector`) " +
-                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?,?,?, false)";
+                "`task_deadline_repeat`, `timeless_end_date`, `inspector_id`, `registrationedmsnumber`, `registrationedmsdate`,`no_inspector`) " +
+                "VALUES (NOW(), NOW(),?,?,?,?,?,?,?,?,?,?,?,?,?,?, false)";
         Date deadline = null;
         if (deadlineDate != null) {
             deadline = new java.sql.Date(deadlineDate.getTime());
@@ -262,6 +264,10 @@ public class Main {
         Date timelessEndSqlDate = null;
         if (timelessEndDate != null) {
             timelessEndSqlDate = new java.sql.Date(timelessEndDate.getTime());
+        }
+        Date registationEDMSSqlDate = null;
+        if (registrationEDMSDate != null) {
+            registationEDMSSqlDate = new java.sql.Date(registrationEDMSDate.getTime());
         }
         try (
                 Connection connection = DriverManager.getConnection(DbConstants.jdbcURL, DbConstants.username, DbConstants.password);
@@ -291,6 +297,9 @@ public class Main {
             else statement.setNull(11, Types.NULL);
 
             statement.setLong(12, inspectorId);
+            statement.setString(13, registrationEDMSNumber);
+            if (registationEDMSSqlDate != null) statement.setDate(14, registationEDMSSqlDate);
+            else statement.setNull(14, Types.NULL);
 
             int affectedRows = statement.executeUpdate();
 
